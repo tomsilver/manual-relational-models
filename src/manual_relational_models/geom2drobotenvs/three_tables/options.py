@@ -4,7 +4,6 @@ from typing import Dict, Iterator, List, Sequence
 
 import numpy as np
 from geom2drobotenvs.concepts import is_inside
-from geom2drobotenvs.object_types import CRVRobotType, RectangleType
 from geom2drobotenvs.structs import MultiBody2D, SE2Pose
 from geom2drobotenvs.utils import (
     CRVRobotActionSpace,
@@ -19,6 +18,7 @@ from gym.spaces import Space
 from relational_structs import (
     Action,
     Object,
+    ObjectCentricStateSpace,
     ObjectSequenceSpace,
     OptionMemory,
     ParameterizedOption,
@@ -74,13 +74,17 @@ def _iter_motion_plans_to_rectangle(
             yield pose_plan
 
 
-def _create_rectangle_vaccum_pick_option(action_space: Space) -> ParameterizedOption:
+def _create_rectangle_vaccum_pick_option(
+    observation_space: ObjectCentricStateSpace, action_space: CRVRobotActionSpace
+) -> ParameterizedOption:
     """Use motion planning to get to a pre-pick pose, extend the arm, turn on
     the vacuum, and then retract the arm."""
 
     name = "RectangleVacuumPick"
+    type_name_to_type = {t.name: t for t in observation_space.types}
+    CRVRobotType = type_name_to_type["crv_robot"]
+    RectangleType = type_name_to_type["rectangle"]
     params_space = ObjectSequenceSpace([CRVRobotType, RectangleType])
-    assert isinstance(action_space, CRVRobotActionSpace)
 
     def _policy(state: State, params: Sequence[Object], memory: OptionMemory) -> Action:
         robot, target = params
@@ -162,7 +166,8 @@ def _create_rectangle_vaccum_pick_option(action_space: Space) -> ParameterizedOp
 
 
 def _create_rectangle_vaccum_table_place_option(
-    action_space: Space,
+    observation_space: ObjectCentricStateSpace,
+    action_space: CRVRobotActionSpace,
 ) -> ParameterizedOption:
     """Use motion planning to get to a pre-place pose, extend the arm, turn off
     the vacuum, and then retract the arm.
@@ -171,11 +176,12 @@ def _create_rectangle_vaccum_table_place_option(
     table and then moving towards the front until no collisions are
     detected.
     """
-
     name = "RectangleVacuumPlace"
+    type_name_to_type = {t.name: t for t in observation_space.types}
+    CRVRobotType = type_name_to_type["crv_robot"]
+    RectangleType = type_name_to_type["rectangle"]
     # robot, held object, target table
     params_space = ObjectSequenceSpace([CRVRobotType, RectangleType, RectangleType])
-    assert isinstance(action_space, CRVRobotActionSpace)
 
     def _policy(state: State, params: Sequence[Object], memory: OptionMemory) -> Action:
         # This policy is completely open-loop.
@@ -267,7 +273,11 @@ def _create_rectangle_vaccum_table_place_option(
     return ParameterizedOption(name, params_space, _policy, _initiable, _terminal)
 
 
-def iter_options(action_space: Space) -> Iterator[ParameterizedOption]:
+def iter_options(
+    observation_space: Space, action_space: Space
+) -> Iterator[ParameterizedOption]:
     """Create manual parameterized options."""
-    yield _create_rectangle_vaccum_pick_option(action_space)
-    yield _create_rectangle_vaccum_table_place_option(action_space)
+    assert isinstance(observation_space, ObjectCentricStateSpace)
+    assert isinstance(action_space, CRVRobotActionSpace)
+    yield _create_rectangle_vaccum_pick_option(observation_space, action_space)
+    yield _create_rectangle_vaccum_table_place_option(observation_space, action_space)
