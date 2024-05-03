@@ -2,7 +2,7 @@
 
 ![workflow](https://github.com/tomsilver/manual-relational-models/actions/workflows/ci.yml/badge.svg)
 
-A basic starter for Python packages with GitHub continuous integration.
+Manually defined relational models (predicates, options, etc.)
 
 ## Requirements
 
