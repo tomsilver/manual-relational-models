@@ -4,7 +4,6 @@ from typing import Dict, Iterator, Optional, Sequence
 
 import numpy as np
 from geom2drobotenvs.concepts import is_inside, is_movable_rectangle
-from geom2drobotenvs.object_types import CRVRobotType, RectangleType
 from geom2drobotenvs.structs import MultiBody2D, ZOrder
 from geom2drobotenvs.utils import (
     get_suctioned_objects,
@@ -12,8 +11,10 @@ from geom2drobotenvs.utils import (
     rectangle_object_to_geom,
     z_orders_may_collide,
 )
+from gym.spaces import Space
 from relational_structs import (
     Object,
+    ObjectCentricStateSpace,
     Predicate,
     State,
 )
@@ -26,13 +27,19 @@ from manual_relational_models.geom2drobotenvs.three_tables.helpers import (
 )
 
 
-def iter_predicates() -> Iterator[Predicate]:
+def iter_predicates(observation_space: Space) -> Iterator[Predicate]:
     """Create manual predicates."""
 
     # NOTE: the static object caches are currently not shared, out of an
     # abundance of caution. Future optimizations should consider carefully
     # using a shared static object cache, but beware of objects with the same
     # names in different tasks.
+
+    # Extract the necessary types.
+    assert isinstance(observation_space, ObjectCentricStateSpace)
+    type_name_to_type = {t.name: t for t in observation_space.types}
+    CRVRobotType = type_name_to_type["crv_robot"]
+    RectangleType = type_name_to_type["rectangle"]
 
     # IsBlock.
     def _is_block_holds(state: State, objs: Sequence[Object]) -> bool:
