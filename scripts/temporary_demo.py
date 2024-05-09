@@ -1,44 +1,37 @@
 """Temporary script to verify non-breaking changes during refactor."""
 
-from manual_relational_models.geom2drobotenvs.three_tables.predicates import iter_predicates
-from manual_relational_models.geom2drobotenvs.three_tables.operators import iter_operators
-from manual_relational_models.geom2drobotenvs.three_tables.options import iter_options
-
-from typing import Dict, Optional, Sequence, Set, Tuple
-
-import gym
-import numpy as np
-from gym.wrappers.record_video import RecordVideo
-from relational_structs import (
-    GroundOperator,
-    LiftedOperator,
-    Object,
-    Option,
-    PDDLDomain,
-    PDDLProblem,
-    Predicate,
-    State,
-    ParameterizedOption,
-)
-from relational_structs.utils import abstract, parse_pddl_plan
-from tomsgeoms2d.structs import LineSegment, Rectangle
-from tomsgeoms2d.utils import geom2ds_intersect
-from tomsutils.pddl_planning import run_pddl_planner
+from typing import Dict
 
 # Needed to register environments for gym.make().
 import geom2drobotenvs  # pylint: disable=unused-import
-
-from geom2drobotenvs.concepts import is_inside, is_movable_rectangle
+import gym
+from geom2drobotenvs.concepts import is_movable_rectangle
 from geom2drobotenvs.object_types import CRVRobotType, Geom2DType, RectangleType
-from geom2drobotenvs.structs import MultiBody2D, ZOrder
-from geom2drobotenvs.utils import (
-    get_suctioned_objects,
-    object_to_multibody2d,
-    rectangle_object_to_geom,
-    z_orders_may_collide,
+from geom2drobotenvs.structs import ZOrder
+from gym.wrappers.record_video import RecordVideo
+from relational_structs import (
+    GroundOperator,
+    Option,
+    ParameterizedOption,
+    PDDLDomain,
+    PDDLProblem,
+    State,
+)
+from relational_structs.utils import abstract, parse_pddl_plan
+from tomsutils.pddl_planning import run_pddl_planner
+
+from manual_relational_models.geom2drobotenvs.three_tables.operators import (
+    iter_operators,
+)
+from manual_relational_models.geom2drobotenvs.three_tables.options import iter_options
+from manual_relational_models.geom2drobotenvs.three_tables.predicates import (
+    iter_predicates,
 )
 
-def _ground_op_to_option(ground_op: GroundOperator, option_name_to_option: Dict[str, ParameterizedOption]) -> Option:
+
+def _ground_op_to_option(
+    ground_op: GroundOperator, option_name_to_option: Dict[str, ParameterizedOption]
+) -> Option:
     if ground_op.name == "Pick":
         param_option = option_name_to_option["RectangleVacuumPick"]
         robot, target, _, _ = ground_op.parameters
@@ -50,6 +43,7 @@ def _ground_op_to_option(ground_op: GroundOperator, option_name_to_option: Dict[
         return param_option.ground([robot, target, shelf])
 
     raise NotImplementedError
+
 
 def _main() -> None:
     env = gym.make("geom2drobotenvs/ThreeTables-v0")
@@ -97,7 +91,9 @@ def _main() -> None:
     option_name_to_option = {
         o.name: o for o in iter_options(env.observation_space, env.action_space)
     }
-    option_plan = [_ground_op_to_option(o, option_name_to_option) for o in ground_op_plan]
+    option_plan = [
+        _ground_op_to_option(o, option_name_to_option) for o in ground_op_plan
+    ]
 
     for option in option_plan:
         print("Starting option", option)
